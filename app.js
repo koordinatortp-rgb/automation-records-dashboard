@@ -111,6 +111,10 @@ function saveAutomations() {
 
 async function loadGoogleSheetAutomations() {
   try {
+    if (config.googleSheetCsvUrl.includes("docs.google.com/spreadsheets")) {
+      return loadGoogleVisualizationAutomations();
+    }
+
     const response = await fetch(config.googleSheetCsvUrl, { cache: "no-store" });
     if (!response.ok) throw new Error(`Google Sheet returned ${response.status}`);
     const csvText = await response.text();
@@ -119,6 +123,74 @@ async function loadGoogleSheetAutomations() {
     console.warn("Не удалось загрузить Google Таблицу", error);
     return [];
   }
+}
+
+function loadGoogleVisualizationAutomations() {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    const previousGoogle = window.google;
+    let didResolve = false;
+
+    window.google = window.google || {};
+    window.google.visualization = window.google.visualization || {};
+    window.google.visualization.Query = window.google.visualization.Query || {};
+    window.google.visualization.Query.setResponse = (response) => {
+      didResolve = true;
+      script.remove();
+      window.google = previousGoogle;
+      resolve(parseGoogleVisualizationRows(response));
+    };
+
+    script.onerror = () => {
+      script.remove();
+      window.google = previousGoogle;
+      reject(new Error("Google Sheet script load failed"));
+    };
+
+    script.onload = () => {
+      if (!didResolve) {
+        script.remove();
+        window.google = previousGoogle;
+        reject(new Error("Google Sheet returned no data"));
+      }
+    };
+
+    script.src = buildGoogleVisualizationUrl(config.googleSheetCsvUrl);
+    document.head.appendChild(script);
+  });
+}
+
+function buildGoogleVisualizationUrl(url) {
+  const sheetUrl = new URL(url);
+  sheetUrl.searchParams.set("tqx", "out:json");
+  sheetUrl.searchParams.set("_", String(Date.now()));
+  return sheetUrl.toString();
+}
+
+function parseGoogleVisualizationRows(response) {
+  const table = response && response.table;
+  if (!table || !Array.isArray(table.cols) || !Array.isArray(table.rows)) return [];
+
+  const headers = table.cols.map((col) => normalizeHeader(col.label || col.id));
+
+  return table.rows
+    .map((row) => {
+      const cells = row.c || [];
+      const value = (names) => {
+        const index = headers.findIndex((header) => names.includes(header));
+        const cell = index >= 0 ? cells[index] : null;
+        return String((cell && (cell.f || cell.v)) || "").trim();
+      };
+
+      return {
+        title: value(["title", "name", "nazvanie", "avtomatizaciya"]),
+        department: value(["department", "otdel"]),
+        status: normalizeStatus(value(["status", "statusproekta"])),
+        hours: Number(value(["hours", "hoursmonth", "chasovmes", "ekonomiyachasov"])) || 0,
+        nextStep: value(["nextstep", "sleduyushchiyshag", "next"])
+      };
+    })
+    .filter((item) => item.title && item.department && item.hours > 0);
 }
 
 function parseSheetRows(csvText) {
