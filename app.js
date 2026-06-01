@@ -1,113 +1,81 @@
-const STORAGE_KEY = "automation-leaderboard-work-v1";
-const COLA_FREE_START_DATE = "2026-05-01";
 const config = window.DASHBOARD_CONFIG || {};
 
-const departments = ["HR", "Продажи", "Маркетинг", "Финансы", "Операции", "Продукт", "Поддержка"];
-
 const statuses = [
-  { id: "all", label: "Все", weight: 1 },
   { id: "idea", label: "Идея", weight: 0.1 },
   { id: "test", label: "На тесте", weight: 0.25 },
   { id: "build", label: "Внедряется", weight: 0.5 },
   { id: "live", label: "Работает", weight: 1 }
 ];
 
+const statusById = Object.fromEntries(statuses.map((status) => [status.id, status]));
+
+const departmentMeta = {
+  ML: { icon: "🧠", color: "violet", accent: "#8b5cf6" },
+  "Разработка": { icon: "💻", color: "blue", accent: "#4f7df3" },
+  "Менеджмент": { icon: "📋", color: "orange", accent: "#f07b3f" },
+  "Дизайн": { icon: "🎨", color: "pink", accent: "#e15b9f" },
+  "Маркетинг": { icon: "📣", color: "green", accent: "#59c66d" },
+  HR: { icon: "🧩", color: "blue", accent: "#4f7df3" },
+  "Продажи": { icon: "📈", color: "green", accent: "#59c66d" },
+  "Финансы": { icon: "💳", color: "orange", accent: "#f07b3f" },
+  "Операции": { icon: "⚙️", color: "violet", accent: "#8b5cf6" },
+  "Продукт": { icon: "🚀", color: "pink", accent: "#e15b9f" },
+  "Поддержка": { icon: "🎧", color: "green", accent: "#59c66d" }
+};
+
+const fallbackMeta = [
+  { icon: "⚡", color: "violet", accent: "#8b5cf6" },
+  { icon: "🧪", color: "blue", accent: "#4f7df3" },
+  { icon: "🛠", color: "orange", accent: "#f07b3f" },
+  { icon: "✨", color: "pink", accent: "#e15b9f" },
+  { icon: "📌", color: "green", accent: "#59c66d" }
+];
+
 const demoAutomations = [
-  {
-    title: "Сбор идей по автоматизациям",
-    department: "HR",
-    status: "live",
-    hours: 18,
-    nextStep: "Открыть форму для всех отделов"
-  },
-  {
-    title: "Черновик анонсов для рабочего чата",
-    department: "HR",
-    status: "build",
-    hours: 10,
-    nextStep: "Согласовать формат еженедельного поста"
-  },
-  {
-    title: "Проверка типовых вопросов кандидатов",
-    department: "HR",
-    status: "test",
-    hours: 14,
-    nextStep: "Протестировать на 20 реальных обращениях"
-  },
-  {
-    title: "Автосводка лидов из чатов",
-    department: "Продажи",
-    status: "build",
-    hours: 42,
-    nextStep: "Сверить поля с CRM"
-  },
-  {
-    title: "Классификация обращений клиентов",
-    department: "Поддержка",
-    status: "test",
-    hours: 36,
-    nextStep: "Проверить точность на выборке"
-  },
-  {
-    title: "Еженедельный отчет по расходам",
-    department: "Финансы",
-    status: "idea",
-    hours: 24,
-    nextStep: "Описать источник данных"
-  },
-  {
-    title: "Черновики постов по контент-плану",
-    department: "Маркетинг",
-    status: "live",
-    hours: 30,
-    nextStep: "Добавить проверку tone of voice"
-  }
+  { title: "Авторазметка датасетов", department: "ML", status: "live", hours: 20, nextStep: "Работает" },
+  { title: "Конвейер переобучения моделей", department: "ML", status: "build", hours: 16, nextStep: "Внедряется" },
+  { title: "Детектор дрифта данных", department: "ML", status: "test", hours: 12, nextStep: "На тесте" },
+  { title: "A/B-тесты моделей в проде", department: "ML", status: "idea", hours: 8, nextStep: "Идея" },
+  { title: "Мониторинг latency и метрик", department: "ML", status: "live", hours: 14, nextStep: "Работает" },
+  { title: "Автодеплой staging → prod", department: "Разработка", status: "live", hours: 26, nextStep: "Работает" },
+  { title: "Генератор API-документации", department: "Разработка", status: "live", hours: 18, nextStep: "Работает" },
+  { title: "Линтер + автофикс в pre-commit", department: "Разработка", status: "build", hours: 12, nextStep: "Внедряется" },
+  { title: "Автотесты регресса API", department: "Разработка", status: "test", hours: 16, nextStep: "На тесте" },
+  { title: "Дашборд алертов в Telegram", department: "Разработка", status: "live", hours: 20, nextStep: "Работает" },
+  { title: "Автомиграции БД", department: "Разработка", status: "build", hours: 15, nextStep: "Внедряется" },
+  { title: "Автосводка спринта в Slack", department: "Менеджмент", status: "live", hours: 22, nextStep: "Работает" },
+  { title: "Шаблоны онбординга", department: "Менеджмент", status: "build", hours: 12, nextStep: "Внедряется" },
+  { title: "Планировщик 1:1 встреч", department: "Менеджмент", status: "test", hours: 10, nextStep: "На тесте" },
+  { title: "Скоринг задач по приоритету", department: "Менеджмент", status: "build", hours: 12, nextStep: "Внедряется" },
+  { title: "Авторезюме встреч", department: "Менеджмент", status: "live", hours: 15, nextStep: "Работает" },
+  { title: "Автоэкспорт Figma → токены", department: "Дизайн", status: "live", hours: 18, nextStep: "Работает" },
+  { title: "Генератор UI-китов", department: "Дизайн", status: "build", hours: 12, nextStep: "Внедряется" },
+  { title: "Проверка контрастности WCAG", department: "Дизайн", status: "test", hours: 8, nextStep: "На тесте" },
+  { title: "Синк макетов с продуктами", department: "Дизайн", status: "build", hours: 10, nextStep: "Внедряется" },
+  { title: "Генератор favicon + OG-image", department: "Дизайн", status: "idea", hours: 6, nextStep: "Идея" },
+  { title: "Автогенератор креативов", department: "Маркетинг", status: "live", hours: 24, nextStep: "Работает" },
+  { title: "Парсер трендов TikTok", department: "Маркетинг", status: "build", hours: 16, nextStep: "Внедряется" },
+  { title: "Автопостинг в Telegram", department: "Маркетинг", status: "live", hours: 20, nextStep: "Работает" },
+  { title: "Отчетность ROAS в дашборд", department: "Маркетинг", status: "live", hours: 22, nextStep: "Работает" },
+  { title: "A/B тесты лендингов", department: "Маркетинг", status: "test", hours: 14, nextStep: "На тесте" },
+  { title: "Ресайз баннеров под все сети", department: "Маркетинг", status: "build", hours: 18, nextStep: "Внедряется" }
 ];
 
 const isDemoMode = Boolean(window.AUTOMATION_DASHBOARD_DEMO);
 const isGoogleSheetMode = !isDemoMode && Boolean(config.googleSheetCsvUrl);
-const canSubmitToGoogleSheet = isGoogleSheetMode && Boolean(config.googleSheetSubmitUrl);
-const seedAutomations = isDemoMode ? demoAutomations : [];
 
 let automations = [];
-let activeStatus = "all";
-let activePeriod = "month";
 
-const statusById = Object.fromEntries(statuses.map((status) => [status.id, status]));
-
-const departmentsCount = document.querySelector("#departmentsCount");
-const automationCount = document.querySelector("#automationCount");
-const hoursSaved = document.querySelector("#hoursSaved");
-const liveCount = document.querySelector("#liveCount");
-const leaderboardList = document.querySelector("#leaderboardList");
-const automationRows = document.querySelector("#automationRows");
-const statusFilter = document.querySelector("#statusFilter");
-const announceList = document.querySelector("#announceList");
-const ideaForm = document.querySelector("#ideaForm");
-const resetDataBtn = document.querySelector("#resetDataBtn");
-const colaRecordDays = document.querySelector("#colaRecordDays");
+const podiumList = document.querySelector("#podiumList");
+const departmentBoard = document.querySelector("#departmentBoard");
+const latestAutomation = document.querySelector("#latestAutomation");
 const sheetLink = document.querySelector("#sheetLink");
-const ideaPanelTitle = document.querySelector("#ideaPanelTitle");
+const colaRecordDays = document.querySelector("#colaRecordDays");
 
 async function loadAutomations() {
-  if (isDemoMode) return seedAutomations;
+  if (isDemoMode) return demoAutomations;
   if (isGoogleSheetMode) return loadGoogleSheetAutomations();
-
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return seedAutomations;
-
-  try {
-    const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed : seedAutomations;
-  } catch {
-    return seedAutomations;
-  }
-}
-
-function saveAutomations() {
-  if (isDemoMode || isGoogleSheetMode) return;
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(automations));
+  return [];
 }
 
 async function loadGoogleSheetAutomations() {
@@ -118,8 +86,7 @@ async function loadGoogleSheetAutomations() {
 
     const response = await fetch(config.googleSheetCsvUrl, { cache: "no-store" });
     if (!response.ok) throw new Error(`Google Sheet returned ${response.status}`);
-    const csvText = await response.text();
-    return parseSheetRows(csvText);
+    return parseSheetRows(await response.text());
   } catch (error) {
     console.warn("Не удалось загрузить Google Таблицу", error);
     return [];
@@ -173,25 +140,7 @@ function parseGoogleVisualizationRows(response) {
   if (!table || !Array.isArray(table.cols) || !Array.isArray(table.rows)) return [];
 
   const headers = table.cols.map((col) => normalizeHeader(col.label || col.id));
-
-  return table.rows
-    .map((row) => {
-      const cells = row.c || [];
-      const value = (names) => {
-        const index = headers.findIndex((header) => names.includes(header));
-        const cell = index >= 0 ? cells[index] : null;
-        return String((cell && (cell.f || cell.v)) || "").trim();
-      };
-
-      return {
-        title: value(["title", "name", "nazvanie", "avtomatizaciya"]),
-        department: value(["department", "otdel"]),
-        status: normalizeStatus(value(["status", "statusproekta"])),
-        hours: Number(value(["hours", "hoursmonth", "chasovmes", "ekonomiyachasov"])) || 0,
-        nextStep: value(["nextstep", "sleduyushchiyshag", "next"])
-      };
-    })
-    .filter((item) => item.title && item.department && item.hours > 0);
+  return table.rows.map((row) => parseRecordFromValues(headers, row.c || [])).filter(isValidRecord);
 }
 
 function parseSheetRows(csvText) {
@@ -200,23 +149,28 @@ function parseSheetRows(csvText) {
   if (!headerRow) return [];
 
   const headers = headerRow.map(normalizeHeader);
+  return dataRows.map((row) => parseRecordFromValues(headers, row)).filter(isValidRecord);
+}
 
-  return dataRows
-    .map((row) => {
-      const value = (names) => {
-        const index = headers.findIndex((header) => names.includes(header));
-        return index >= 0 ? String(row[index] || "").trim() : "";
-      };
+function parseRecordFromValues(headers, values) {
+  const value = (names) => {
+    const index = headers.findIndex((header) => names.includes(header));
+    const cell = index >= 0 ? values[index] : null;
+    if (cell && typeof cell === "object") return String(cell.f || cell.v || "").trim();
+    return String(cell || "").trim();
+  };
 
-      return {
-        title: value(["title", "name", "nazvanie", "avtomatizaciya"]),
-        department: value(["department", "otdel"]),
-        status: normalizeStatus(value(["status", "statusproekta"])),
-        hours: Number(value(["hours", "hoursmonth", "chasovmes", "ekonomiyachasov"])) || 0,
-        nextStep: value(["nextstep", "sleduyushchiyshag", "next"])
-      };
-    })
-    .filter((item) => item.title && item.department && item.hours > 0);
+  return {
+    title: value(["title", "name", "nazvanie", "avtomatizaciya"]),
+    department: value(["department", "otdel"]),
+    status: normalizeStatus(value(["status", "statusproekta"])),
+    hours: Number(value(["hours", "hoursmonth", "chasovmes", "ekonomiyachasov"])) || 0,
+    nextStep: value(["nextstep", "sleduyushchiyshag", "next"])
+  };
+}
+
+function isValidRecord(item) {
+  return item.title && item.department && item.hours > 0;
 }
 
 function parseCsv(csvText) {
@@ -275,24 +229,7 @@ function normalizeStatus(value) {
   return "idea";
 }
 
-function scoreAutomation(item) {
-  const status = statusById[item.status] || statusById.idea;
-  return Math.round(Number(item.hours) * status.weight);
-}
-
-function periodMultiplier() {
-  if (activePeriod === "quarter") return 3;
-  if (activePeriod === "all") return 6;
-  return 1;
-}
-
-function getFilteredAutomations() {
-  if (activeStatus === "all") return automations;
-  return automations.filter((item) => item.status === activeStatus);
-}
-
 function buildDepartmentStats() {
-  const multiplier = periodMultiplier();
   const map = new Map();
 
   automations.forEach((item) => {
@@ -300,93 +237,143 @@ function buildDepartmentStats() {
       map.set(item.department, {
         department: item.department,
         count: 0,
+        score: 0,
         live: 0,
-        idea: 0,
-        test: 0,
-        build: 0,
-        hours: 0,
-        score: 0
+        items: []
       });
     }
 
     const stat = map.get(item.department);
     stat.count += 1;
-    stat[item.status] += 1;
-    stat.hours += Number(item.hours) * multiplier;
-    stat.score += scoreAutomation(item) * multiplier;
+    stat.score += scoreAutomation(item);
+    stat.live += item.status === "live" ? 1 : 0;
+    stat.items.push(item);
   });
 
-  map.forEach((stat) => {
-    stat.progress = Math.round(((stat.test * 25) + (stat.build * 50) + (stat.live * 100)) / Math.max(stat.count, 1));
-  });
-
-  return [...map.values()].sort((a, b) => b.score - a.score || b.live - a.live);
+  return [...map.values()].sort((a, b) => b.count - a.count || b.score - a.score || b.live - a.live);
 }
 
-function renderMetrics() {
-  const activeDepartments = new Set(automations.map((item) => item.department));
-  const multiplier = periodMultiplier();
-  const totalHours = automations
-    .filter((item) => item.status === "live")
-    .reduce((sum, item) => sum + Number(item.hours) * multiplier, 0);
-
-  departmentsCount.textContent = activeDepartments.size;
-  automationCount.textContent = automations.length;
-  hoursSaved.textContent = `${totalHours} ч`;
-  liveCount.textContent = automations.filter((item) => item.status === "live").length;
+function scoreAutomation(item) {
+  const status = statusById[item.status] || statusById.idea;
+  return Math.round(Number(item.hours) * status.weight);
 }
 
-function renderLeaderboard() {
-  const stats = buildDepartmentStats();
+function renderAll() {
+  renderColaRecord();
+  renderSheetLink();
+  renderPodium();
+  renderDepartmentBoard();
+  renderLatestAutomation();
+}
+
+function renderColaRecord() {
+  if (colaRecordDays) colaRecordDays.textContent = "1 день";
+}
+
+function renderSheetLink() {
+  if (!sheetLink) return;
+  sheetLink.href = config.googleSheetEditUrl || "#";
+}
+
+function renderPodium() {
+  const stats = buildDepartmentStats().slice(0, 3);
+  const order = [1, 0, 2];
+
   if (!stats.length) {
-    leaderboardList.innerHTML = `
-      <div class="empty-state">
-        <strong>Лидерборд готов к запуску</strong>
-        <p>Добавьте первые реальные автоматизации через форму. Рейтинг отделов появится автоматически.</p>
-      </div>
+    podiumList.innerHTML = `
+      <article class="empty-board">
+        <strong>Рейтинг готов к запуску</strong>
+        <span>Добавьте первые автоматизации в Google Таблицу.</span>
+      </article>
     `;
     return;
   }
 
-  const maxScore = Math.max(...stats.map((item) => item.score), 1);
-
-  leaderboardList.innerHTML = stats
-    .map((item, index) => {
-      const width = Math.max(8, Math.round((item.score / maxScore) * 100));
-      const progressSegments = ["idea", "test", "build", "live"]
-        .map((status) => {
-          const count = item[status];
-          const segmentWidth = item.count ? (count / item.count) * 100 : 0;
-          return `<span class="progress-segment ${status}" style="width: ${segmentWidth}%" title="${statusById[status].label}: ${count}"></span>`;
-        })
-        .join("");
-
-      return `
-        <article class="leader-row">
-          <div class="rank">${index + 1}</div>
-          <div class="leader-meta">
-            <div class="leader-title">
-              <span>${escapeHtml(item.department)}</span>
-              <span>${item.score} очк.</span>
-            </div>
-            <div class="bar-track" aria-hidden="true">
-              <div class="bar-fill" style="width: ${width}%"></div>
-            </div>
-            <div class="project-progress" aria-label="Прогресс проектов">
-              <div class="progress-track">${progressSegments}</div>
-              <div class="progress-labels">
-                <span class="progress-pill idea">Идей ${item.idea}</span>
-                <span class="progress-pill test">Тест ${item.test}</span>
-                <span class="progress-pill build">Внедр. ${item.build}</span>
-                <span class="progress-pill live">Работает ${item.live}</span>
-              </div>
-            </div>
-          </div>
-          <div class="leader-stats">${item.count} ${pluralProject(item.count)}<br>${item.progress}% прогресс</div>
-        </article>
-      `;
-    })
+  podiumList.innerHTML = order
+    .filter((index) => stats[index])
+    .map((index) => renderPodiumCard(stats[index], index + 1))
     .join("");
+}
+
+function renderPodiumCard(stat, rank) {
+  const meta = getDepartmentMeta(stat.department);
+  return `
+    <article class="podium-card rank-${rank} ${meta.color}">
+      <div class="medal" aria-hidden="true">${rank}</div>
+      <strong>${escapeHtml(stat.department)}</strong>
+      <b>${stat.count}</b>
+      <span>${stat.count} ${pluralProject(stat.count)}</span>
+    </article>
+  `;
+}
+
+function renderDepartmentBoard() {
+  const stats = buildDepartmentStats();
+  if (!stats.length) {
+    departmentBoard.innerHTML = "";
+    return;
+  }
+
+  departmentBoard.innerHTML = stats
+    .map((stat, index) => renderDepartmentCard(stat, index))
+    .join("");
+}
+
+function renderDepartmentCard(stat, index) {
+  const meta = getDepartmentMeta(stat.department, index);
+  const maxCount = Math.max(...buildDepartmentStats().map((item) => item.count), 1);
+  const progress = Math.max(8, Math.round((stat.count / maxCount) * 100));
+  const items = stat.items
+    .slice(0, 6)
+    .map((item) => renderAutomationChip(item, meta))
+    .join("");
+
+  return `
+    <article class="department-card ${meta.color}" style="--accent: ${meta.accent}">
+      <header class="department-head">
+        <div>
+          <span class="department-icon" aria-hidden="true">${meta.icon}</span>
+          <h2>${escapeHtml(stat.department)}</h2>
+        </div>
+        <b>${stat.count}</b>
+      </header>
+      <div class="score-line" aria-hidden="true"><span style="width: ${progress}%"></span></div>
+      <p class="department-subline">${stat.live} работает · ${stat.score} очк.</p>
+      <div class="automation-list">${items}</div>
+    </article>
+  `;
+}
+
+function renderAutomationChip(item, meta) {
+  const status = statusById[item.status] || statusById.idea;
+  return `
+    <div class="automation-chip">
+      <span class="task-dot" style="background: ${meta.accent}" aria-hidden="true"></span>
+      <strong>${escapeHtml(item.title)}</strong>
+      <em>${status.label}</em>
+    </div>
+  `;
+}
+
+function renderLatestAutomation() {
+  if (!latestAutomation) return;
+  const latest = automations[automations.length - 1] || automations[0];
+  const action = latestAutomation.querySelector(".latest-action");
+
+  if (action) {
+    action.href = config.googleSheetEditUrl || "#";
+  }
+
+  if (!latest) return;
+
+  const title = latestAutomation.querySelector("h2");
+  const meta = latestAutomation.querySelector("span");
+  if (title) title.textContent = latest.title;
+  if (meta) meta.textContent = `${latest.department} · ${statusById[latest.status].label}`;
+}
+
+function getDepartmentMeta(department, index = 0) {
+  return departmentMeta[department] || fallbackMeta[index % fallbackMeta.length];
 }
 
 function pluralProject(count) {
@@ -398,128 +385,6 @@ function pluralProject(count) {
   return "проектов";
 }
 
-function renderFilters() {
-  statusFilter.innerHTML = statuses
-    .map((status) => `
-      <button class="filter-btn ${status.id === activeStatus ? "active" : ""}" type="button" data-status="${status.id}">
-        ${status.label}
-      </button>
-    `)
-    .join("");
-}
-
-function renderRows() {
-  const multiplier = periodMultiplier();
-  const filteredAutomations = getFilteredAutomations();
-
-  if (!filteredAutomations.length) {
-    automationRows.innerHTML = `
-      <tr>
-        <td colspan="5">
-          <div class="empty-state table-empty">
-            <strong>Пока нет рабочих записей</strong>
-            <p>Занесите идею, тест или уже работающую автоматизацию, чтобы она попала в пайплайн.</p>
-          </div>
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  automationRows.innerHTML = filteredAutomations
-    .map((item) => {
-      const status = statusById[item.status] || statusById.idea;
-      return `
-        <tr>
-          <td>
-            <div class="automation-title">
-              <span>${escapeHtml(item.title)}</span>
-              <small>${escapeHtml(item.nextStep || "Следующий шаг не указан")}</small>
-            </div>
-          </td>
-          <td>${escapeHtml(item.department)}</td>
-          <td><span class="badge ${item.status}">${status.label}</span></td>
-          <td>${Number(item.hours) * multiplier} ч/мес</td>
-          <td><strong>${scoreAutomation(item) * multiplier}</strong></td>
-        </tr>
-      `;
-    })
-    .join("");
-}
-
-function renderAnnouncements() {
-  const announcements = [...automations]
-    .sort((a, b) => scoreAutomation(b) - scoreAutomation(a))
-    .slice(0, 4);
-
-  if (!announcements.length) {
-    announceList.innerHTML = `
-      <div class="empty-state compact">
-        <strong>Анонсы появятся после первых записей</strong>
-        <p>Здесь будет короткий текст для рабочего чата по новым и запущенным автоматизациям.</p>
-      </div>
-    `;
-    return;
-  }
-
-  announceList.innerHTML = announcements
-    .map((item) => {
-      const status = statusById[item.status] || statusById.idea;
-      return `
-        <article class="announce-card">
-          <strong>${escapeHtml(item.department)}: ${escapeHtml(item.title)}</strong>
-          <p>Статус: "${status.label}". Потенциал экономии: ${item.hours} ч/мес.</p>
-        </article>
-      `;
-    })
-    .join("");
-}
-
-function renderFormOptions() {
-  const departmentSelect = ideaForm.elements.department;
-  const statusSelect = ideaForm.elements.status;
-
-  departmentSelect.innerHTML = departments
-    .map((department) => `<option value="${department}">${department}</option>`)
-    .join("");
-
-  statusSelect.innerHTML = statuses
-    .filter((status) => status.id !== "all")
-    .map((status) => `<option value="${status.id}">${status.label}</option>`)
-    .join("");
-}
-
-function renderAll() {
-  renderColaRecord();
-  renderDataSourceState();
-  renderMetrics();
-  renderLeaderboard();
-  renderFilters();
-  renderRows();
-  renderAnnouncements();
-}
-
-function renderColaRecord() {
-  if (!colaRecordDays) return;
-
-  const start = new Date(`${COLA_FREE_START_DATE}T00:00:00`);
-  const today = new Date();
-  start.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-
-  const days = Math.max(0, Math.floor((today - start) / 86400000));
-  colaRecordDays.textContent = `${days} ${pluralDay(days)}`;
-}
-
-function pluralDay(count) {
-  const lastTwo = count % 100;
-  const last = count % 10;
-  if (lastTwo >= 11 && lastTwo <= 14) return "дней";
-  if (last === 1) return "день";
-  if (last >= 2 && last <= 4) return "дня";
-  return "дней";
-}
-
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -529,131 +394,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function renderDataSourceState() {
-  if (!sheetLink || !ideaPanelTitle) return;
-
-  if (isGoogleSheetMode && config.googleSheetEditUrl) {
-    sheetLink.href = config.googleSheetEditUrl;
-    sheetLink.classList.remove("hidden");
-    ideaPanelTitle.textContent = canSubmitToGoogleSheet ? "Добавить запись" : "Добавить в Google Таблицу";
-    ideaForm.querySelector(".primary-btn span:last-child").textContent = canSubmitToGoogleSheet ? "Добавить запись" : "Открыть таблицу";
-    return;
-  }
-
-  sheetLink.classList.add("hidden");
-  ideaPanelTitle.textContent = "Добавить идею";
-  ideaForm.querySelector(".primary-btn span:last-child").textContent = "Добавить в таблицу";
-}
-
-statusFilter.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-status]");
-  if (!button) return;
-  activeStatus = button.dataset.status;
-  renderAll();
-});
-
-document.querySelectorAll("[data-period]").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("[data-period]").forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    activePeriod = button.dataset.period;
-    renderAll();
-  });
-});
-
-ideaForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (isGoogleSheetMode) {
-    if (canSubmitToGoogleSheet) {
-      submitGoogleSheetForm();
-      return;
-    }
-
-    if (config.googleSheetEditUrl) {
-      window.open(config.googleSheetEditUrl, "_blank", "noopener,noreferrer");
-    }
-    return;
-  }
-
-  const formData = new FormData(ideaForm);
-  const nextItem = {
-    title: formData.get("title").trim(),
-    department: formData.get("department"),
-    status: formData.get("status"),
-    hours: Number(formData.get("hours")),
-    nextStep: formData.get("nextStep").trim()
-  };
-
-  automations = [nextItem, ...automations];
-  saveAutomations();
-  ideaForm.reset();
-  ideaForm.elements.hours.value = 8;
-  renderAll();
-});
-
-async function submitGoogleSheetForm() {
-  const button = ideaForm.querySelector(".primary-btn");
-  const buttonText = button.querySelector("span:last-child");
-  const formData = new FormData(ideaForm);
-  const nextItem = {
-    title: formData.get("title").trim(),
-    department: formData.get("department"),
-    status: formData.get("status"),
-    hours: Number(formData.get("hours")),
-    nextStep: formData.get("nextStep").trim()
-  };
-
-  button.disabled = true;
-  buttonText.textContent = "Отправляем...";
-
-  try {
-    const payload = new URLSearchParams();
-    payload.set("title", nextItem.title);
-    payload.set("department", nextItem.department);
-    payload.set("status", statusById[nextItem.status].label);
-    payload.set("hours", String(nextItem.hours));
-    payload.set("nextStep", nextItem.nextStep);
-
-    await fetch(config.googleSheetSubmitUrl, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: payload.toString()
-    });
-
-    automations = [nextItem, ...automations];
-    ideaForm.reset();
-    ideaForm.elements.hours.value = 8;
-    renderAll();
-  } catch (error) {
-    console.warn("Не удалось отправить запись в Google Таблицу", error);
-    if (config.googleSheetEditUrl) {
-      window.open(config.googleSheetEditUrl, "_blank", "noopener,noreferrer");
-    }
-  } finally {
-    button.disabled = false;
-    buttonText.textContent = "Добавить запись";
-  }
-}
-
-resetDataBtn.addEventListener("click", async () => {
-  if (isGoogleSheetMode) {
-    automations = await loadGoogleSheetAutomations();
-    activeStatus = "all";
-    renderAll();
-    return;
-  }
-
-  automations = isDemoMode ? seedAutomations : [];
-  activeStatus = "all";
-  saveAutomations();
-  renderAll();
-});
-
 async function init() {
-  renderFormOptions();
   automations = await loadAutomations();
   renderAll();
 }

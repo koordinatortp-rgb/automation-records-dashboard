@@ -3,184 +3,42 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Демо лидерборда автоматизаций</title>
-    <link rel="stylesheet" href="./styles.css?v=sheets-1">
+    <title>Демо рейтинга автоматизаций</title>
+    <link rel="stylesheet" href="./styles.css?v=board-1">
   </head>
   <body>
-    <div class="app-shell">
-      <aside class="sidebar" aria-label="Навигация">
-        <div class="brand">
-          <div class="brand-mark" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div>
-            <p class="eyebrow">AI workshops</p>
-            <h1>Автоматизации</h1>
-          </div>
+    <main class="records-board">
+      <header class="board-header">
+        <div>
+          <p class="board-kicker">AI workshops</p>
+          <h1><span aria-hidden="true">⚡</span> Рейтинг автоматизаций</h1>
         </div>
+        <aside class="cola-record" aria-label="Пасхалка">
+          <span>Рекорд</span>
+          <strong>Леха не пил колу</strong>
+          <b id="colaRecordDays">1 день</b>
+        </aside>
+      </header>
 
-        <nav class="nav-list">
-          <a class="nav-item active" href="#leaderboard" aria-label="Лидерборд">
-            <span class="icon trophy" aria-hidden="true"></span>
-            <span>Лидерборд</span>
-          </a>
-          <a class="nav-item" href="#pipeline" aria-label="Пайплайн">
-            <span class="icon pipeline" aria-hidden="true"></span>
-            <span>Пайплайн</span>
-          </a>
-          <a class="nav-item" href="#ideas" aria-label="Идеи">
-            <span class="icon spark" aria-hidden="true"></span>
-            <span>Идеи</span>
-          </a>
-        </nav>
+      <section class="podium" id="podiumList" aria-label="Топ отделов"></section>
 
-        <div class="side-note">
-          <p>Очки = часы экономии с учетом статуса. Работает: 100%, внедряется: 50%, тест: 25%, идея: 10%.</p>
+      <section class="department-grid" id="departmentBoard" aria-label="Автоматизации по отделам"></section>
+
+      <section class="latest-strip" id="latestAutomation">
+        <div class="latest-icon" aria-hidden="true">⚡</div>
+        <div>
+          <p>Последняя автоматизация</p>
+          <h2>Пока ждем первую запись</h2>
+          <span>Добавьте автоматизацию в Google Таблицу</span>
         </div>
-      </aside>
-
-      <main class="dashboard">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Демо для общего сбора</p>
-            <h2>Как будет выглядеть лидерборд, когда отделы начнут заносить автоматизации</h2>
-          </div>
-          <div class="topbar-side">
-            <div class="fun-record" aria-label="Рекорд без колы">
-              <span>Рекорд</span>
-              <strong>Леха не пил колу</strong>
-              <b id="colaRecordDays">0 дней</b>
-            </div>
-            <div class="topbar-actions" aria-label="Переключатели периода">
-              <button class="period-btn active" type="button" data-period="month">Месяц</button>
-              <button class="period-btn" type="button" data-period="quarter">Квартал</button>
-              <button class="period-btn" type="button" data-period="all">Все время</button>
-            </div>
-          </div>
-        </header>
-
-        <section class="metrics" aria-label="Ключевые показатели">
-          <article class="metric-tile">
-            <span class="metric-label">Отделы в игре</span>
-            <strong id="departmentsCount">0</strong>
-            <span class="metric-caption">с активными идеями</span>
-          </article>
-          <article class="metric-tile">
-            <span class="metric-label">Автоматизаций</span>
-            <strong id="automationCount">0</strong>
-            <span class="metric-caption">в пайплайне</span>
-          </article>
-          <article class="metric-tile accent">
-            <span class="metric-label">Экономия</span>
-            <strong id="hoursSaved">0 ч</strong>
-            <span class="metric-caption">в месяц</span>
-          </article>
-          <article class="metric-tile">
-            <span class="metric-label">Работает</span>
-            <strong id="liveCount">0</strong>
-            <span class="metric-caption">готовых решений</span>
-          </article>
-        </section>
-
-        <section class="workbench">
-          <div class="main-column">
-            <section class="panel leaderboard-panel" id="leaderboard">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Рейтинг отделов</p>
-                  <h3>Лидерборд по очкам</h3>
-                </div>
-                <button class="ghost-btn" type="button" id="resetDataBtn" title="Вернуть демо-данные">
-                  <span class="icon reset" aria-hidden="true"></span>
-                </button>
-              </div>
-              <div class="leaderboard-list" id="leaderboardList"></div>
-            </section>
-
-            <section class="panel" id="pipeline">
-              <div class="panel-header split">
-                <div>
-                  <p class="eyebrow">Статусы</p>
-                  <h3>Таблица рекордов</h3>
-                </div>
-                <div class="status-filter" id="statusFilter" aria-label="Фильтр статуса"></div>
-              </div>
-              <div class="automation-table-wrap">
-                <table class="automation-table">
-                  <thead>
-                    <tr>
-                      <th>Автоматизация</th>
-                      <th>Отдел</th>
-                      <th>Статус</th>
-                      <th>Экономия</th>
-                      <th>Очки</th>
-                    </tr>
-                  </thead>
-                  <tbody id="automationRows"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-
-          <aside class="right-column">
-            <section class="panel idea-panel" id="ideas">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Новая запись</p>
-                  <h3 id="ideaPanelTitle">Добавить идею</h3>
-                </div>
-                <a class="sheet-link hidden" id="sheetLink" href="#" target="_blank" rel="noreferrer">Таблица</a>
-              </div>
-              <form class="idea-form" id="ideaForm">
-                <label>
-                  <span>Название</span>
-                  <input name="title" type="text" placeholder="Например, автоответ по типовым HR-вопросам" required>
-                </label>
-                <label>
-                  <span>Отдел</span>
-                  <select name="department" required></select>
-                </label>
-                <div class="form-grid">
-                  <label>
-                    <span>Статус</span>
-                    <select name="status" required></select>
-                  </label>
-                  <label>
-                    <span>Часов/мес</span>
-                    <input name="hours" type="number" min="1" max="999" value="8" required>
-                  </label>
-                </div>
-                <label>
-                  <span>Следующий шаг</span>
-                  <input name="nextStep" type="text" placeholder="Протестировать на воркшопе">
-                </label>
-                <button class="primary-btn" type="submit">
-                  <span class="icon plus" aria-hidden="true"></span>
-                  <span>Добавить в таблицу</span>
-                </button>
-              </form>
-            </section>
-
-            <section class="panel announce-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Для рабочего чата</p>
-                  <h3>Анонсы недели</h3>
-                </div>
-              </div>
-              <div class="announce-list" id="announceList"></div>
-            </section>
-          </aside>
-        </section>
-      </main>
-    </div>
+        <a class="latest-action" id="sheetLink" href="#" target="_blank" rel="noreferrer">Внедри свою →</a>
+      </section>
+    </main>
 
     <script>
       window.AUTOMATION_DASHBOARD_DEMO = true;
     </script>
-    <script src="./config.js?v=sheets-1"></script>
-    <script src="./app.js?v=sheets-1"></script>
+    <script src="./config.js?v=board-1"></script>
+    <script src="./app.js?v=board-1"></script>
   </body>
 </html>

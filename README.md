@@ -1,59 +1,29 @@
-# Таблица рекордов автоматизаций
+# Рейтинг автоматизаций
 
 Статический дашборд для GitHub Pages.
 
 ## Страницы
 
-- `index.html` - рабочая версия с чистой доской.
+- `index.html` - рабочая версия, читает данные из Google Таблицы.
 - `demo.html` - демо-версия с примерными записями.
 
-## Данные
+## Google Таблица
 
-Рабочая версия сохраняет записи в `localStorage` браузера под ключом `automation-leaderboard-work-v1`.
-Это значит, что данные сохраняются при перезагрузке страницы и при перезапуске локального сервера.
+Дашборд читает первый лист таблицы через `config.js`.
 
-Важно: `localStorage` хранится отдельно в браузере каждого пользователя. Для общей таблицы, где все видят одни и те же записи, нужен общий источник данных: Google Sheets, Supabase, Airtable или небольшой backend.
+Нужные колонки:
 
-## Google Sheets как общий источник
+- `Название`
+- `Отдел`
+- `Статус`
+- `Часов/мес`
+- `Следующий шаг`
 
-1. Создайте Google Таблицу.
-2. Импортируйте файл `automation-records-template.csv` или создайте первый лист с колонками:
-   - `Название`
-   - `Отдел`
-   - `Статус`
-   - `Часов/мес`
-   - `Следующий шаг`
-3. В Google Sheets откройте `File` -> `Share` -> `Publish to web`.
-4. Выберите первый лист и формат `Comma-separated values (.csv)`.
-5. Скопируйте опубликованную CSV-ссылку.
-6. Вставьте ссылки в `config.js`:
+Статусы:
 
-```js
-window.DASHBOARD_CONFIG = {
-  googleSheetCsvUrl: "CSV_LINK_FROM_PUBLISH_TO_WEB",
-  googleSheetEditUrl: "GOOGLE_SHEET_EDIT_LINK",
-  googleSheetSubmitUrl: "APPS_SCRIPT_WEB_APP_LINK"
-};
-```
+- `Идея`
+- `На тесте`
+- `Внедряется`
+- `Работает`
 
-После этого GitHub Pages будет читать записи из Google Таблицы. Если `googleSheetSubmitUrl` пустой, кнопка добавления на сайте откроет саму таблицу. Если `googleSheetSubmitUrl` заполнен, сайт будет отправлять форму прямо в таблицу.
-
-## Запись из сайта в Google Sheets
-
-1. В Google Таблице откройте `Extensions` -> `Apps Script`.
-2. Вставьте код из `apps-script.gs`.
-3. Нажмите `Deploy` -> `New deployment`.
-4. Type: `Web app`.
-5. Execute as: `Me`.
-6. Who has access: `Anyone`.
-7. Скопируйте Web app URL.
-8. Вставьте его в `config.js` в поле `googleSheetSubmitUrl`.
-
-## GitHub Pages
-
-После публикации репозитория в GitHub включите Pages:
-
-1. Repository `Settings`.
-2. `Pages`.
-3. Source: `Deploy from a branch`.
-4. Branch: `main`, folder: `/root`.
+Ссылка на редактирование таблицы используется кнопкой `Внедри свою`.
