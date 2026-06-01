@@ -66,6 +66,7 @@ const demoAutomations = [
 
 const isDemoMode = Boolean(window.AUTOMATION_DASHBOARD_DEMO);
 const isGoogleSheetMode = !isDemoMode && Boolean(config.googleSheetCsvUrl);
+const canSubmitToGoogleSheet = isGoogleSheetMode && Boolean(config.googleSheetSubmitUrl);
 const seedAutomations = isDemoMode ? demoAutomations : [];
 
 let automations = [];
@@ -534,8 +535,8 @@ function renderDataSourceState() {
   if (isGoogleSheetMode && config.googleSheetEditUrl) {
     sheetLink.href = config.googleSheetEditUrl;
     sheetLink.classList.remove("hidden");
-    ideaPanelTitle.textContent = "Добавить в Google Таблицу";
-    ideaForm.querySelector(".primary-btn span:last-child").textContent = "Открыть таблицу";
+    ideaPanelTitle.textContent = canSubmitToGoogleSheet ? "Добавить запись" : "Добавить в Google Таблицу";
+    ideaForm.querySelector(".primary-btn span:last-child").textContent = canSubmitToGoogleSheet ? "Добавить запись" : "Открыть таблицу";
     return;
   }
 
@@ -563,6 +564,11 @@ document.querySelectorAll("[data-period]").forEach((button) => {
 ideaForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (isGoogleSheetMode) {
+    if (canSubmitToGoogleSheet) {
+      submitGoogleSheetForm();
+      return;
+    }
+
     if (config.googleSheetEditUrl) {
       window.open(config.googleSheetEditUrl, "_blank", "noopener,noreferrer");
     }
@@ -584,6 +590,53 @@ ideaForm.addEventListener("submit", (event) => {
   ideaForm.elements.hours.value = 8;
   renderAll();
 });
+
+async function submitGoogleSheetForm() {
+  const button = ideaForm.querySelector(".primary-btn");
+  const buttonText = button.querySelector("span:last-child");
+  const formData = new FormData(ideaForm);
+  const nextItem = {
+    title: formData.get("title").trim(),
+    department: formData.get("department"),
+    status: formData.get("status"),
+    hours: Number(formData.get("hours")),
+    nextStep: formData.get("nextStep").trim()
+  };
+
+  button.disabled = true;
+  buttonText.textContent = "Отправляем...";
+
+  try {
+    const payload = new URLSearchParams();
+    payload.set("title", nextItem.title);
+    payload.set("department", nextItem.department);
+    payload.set("status", statusById[nextItem.status].label);
+    payload.set("hours", String(nextItem.hours));
+    payload.set("nextStep", nextItem.nextStep);
+
+    await fetch(config.googleSheetSubmitUrl, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: payload.toString()
+    });
+
+    automations = [nextItem, ...automations];
+    ideaForm.reset();
+    ideaForm.elements.hours.value = 8;
+    renderAll();
+  } catch (error) {
+    console.warn("Не удалось отправить запись в Google Таблицу", error);
+    if (config.googleSheetEditUrl) {
+      window.open(config.googleSheetEditUrl, "_blank", "noopener,noreferrer");
+    }
+  } finally {
+    button.disabled = false;
+    buttonText.textContent = "Добавить запись";
+  }
+}
 
 resetDataBtn.addEventListener("click", async () => {
   if (isGoogleSheetMode) {

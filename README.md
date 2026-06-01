@@ -31,11 +31,23 @@
 ```js
 window.DASHBOARD_CONFIG = {
   googleSheetCsvUrl: "CSV_LINK_FROM_PUBLISH_TO_WEB",
-  googleSheetEditUrl: "GOOGLE_SHEET_EDIT_LINK"
+  googleSheetEditUrl: "GOOGLE_SHEET_EDIT_LINK",
+  googleSheetSubmitUrl: "APPS_SCRIPT_WEB_APP_LINK"
 };
 ```
 
-После этого GitHub Pages будет читать записи из Google Таблицы. Кнопка добавления на сайте будет открывать саму таблицу, чтобы все записи жили в одном месте.
+После этого GitHub Pages будет читать записи из Google Таблицы. Если `googleSheetSubmitUrl` пустой, кнопка добавления на сайте откроет саму таблицу. Если `googleSheetSubmitUrl` заполнен, сайт будет отправлять форму прямо в таблицу.
+
+## Запись из сайта в Google Sheets
+
+1. В Google Таблице откройте `Extensions` -> `Apps Script`.
+2. Вставьте код из `apps-script.gs`.
+3. Нажмите `Deploy` -> `New deployment`.
+4. Type: `Web app`.
+5. Execute as: `Me`.
+6. Who has access: `Anyone`.
+7. Скопируйте Web app URL.
+8. Вставьте его в `config.js` в поле `googleSheetSubmitUrl`.
 
 ## GitHub Pages
 
