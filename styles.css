@@ -427,6 +427,24 @@ button {
   color: var(--muted);
 }
 
+.sheet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid rgba(19, 121, 91, 0.28);
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .leaderboard-list {
   display: grid;
   gap: 10px;

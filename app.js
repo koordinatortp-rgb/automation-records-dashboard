@@ -1,5 +1,6 @@
 const STORAGE_KEY = "automation-leaderboard-work-v1";
 const COLA_FREE_START_DATE = "2026-05-01";
+const config = window.DASHBOARD_CONFIG || {};
 
 const departments = ["HR", "Продажи", "Маркетинг", "Финансы", "Операции", "Продукт", "Поддержка"];
 
@@ -64,9 +65,10 @@ const demoAutomations = [
 ];
 
 const isDemoMode = Boolean(window.AUTOMATION_DASHBOARD_DEMO);
+const isGoogleSheetMode = !isDemoMode && Boolean(config.googleSheetCsvUrl);
 const seedAutomations = isDemoMode ? demoAutomations : [];
 
-let automations = loadAutomations();
+let automations = [];
 let activeStatus = "all";
 let activePeriod = "month";
 
@@ -83,9 +85,12 @@ const announceList = document.querySelector("#announceList");
 const ideaForm = document.querySelector("#ideaForm");
 const resetDataBtn = document.querySelector("#resetDataBtn");
 const colaRecordDays = document.querySelector("#colaRecordDays");
+const sheetLink = document.querySelector("#sheetLink");
+const ideaPanelTitle = document.querySelector("#ideaPanelTitle");
 
-function loadAutomations() {
+async function loadAutomations() {
   if (isDemoMode) return seedAutomations;
+  if (isGoogleSheetMode) return loadGoogleSheetAutomations();
 
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) return seedAutomations;
@@ -99,9 +104,102 @@ function loadAutomations() {
 }
 
 function saveAutomations() {
-  if (isDemoMode) return;
+  if (isDemoMode || isGoogleSheetMode) return;
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(automations));
+}
+
+async function loadGoogleSheetAutomations() {
+  try {
+    const response = await fetch(config.googleSheetCsvUrl, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Google Sheet returned ${response.status}`);
+    const csvText = await response.text();
+    return parseSheetRows(csvText);
+  } catch (error) {
+    console.warn("Не удалось загрузить Google Таблицу", error);
+    return [];
+  }
+}
+
+function parseSheetRows(csvText) {
+  const rows = parseCsv(csvText).filter((row) => row.some((cell) => String(cell).trim()));
+  const [headerRow, ...dataRows] = rows;
+  if (!headerRow) return [];
+
+  const headers = headerRow.map(normalizeHeader);
+
+  return dataRows
+    .map((row) => {
+      const value = (names) => {
+        const index = headers.findIndex((header) => names.includes(header));
+        return index >= 0 ? String(row[index] || "").trim() : "";
+      };
+
+      return {
+        title: value(["title", "name", "nazvanie", "avtomatizaciya"]),
+        department: value(["department", "otdel"]),
+        status: normalizeStatus(value(["status", "statusproekta"])),
+        hours: Number(value(["hours", "hoursmonth", "chasovmes", "ekonomiyachasov"])) || 0,
+        nextStep: value(["nextstep", "sleduyushchiyshag", "next"])
+      };
+    })
+    .filter((item) => item.title && item.department && item.hours > 0);
+}
+
+function parseCsv(csvText) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < csvText.length; index += 1) {
+    const char = csvText[index];
+    const nextChar = csvText[index + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      cell += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && nextChar === "\n") index += 1;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  rows.push(row);
+  return rows;
+}
+
+function normalizeHeader(value) {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replaceAll("ё", "е")
+    .replace(/[^a-zа-я0-9]/g, "")
+    .replace("название", "title")
+    .replace("автоматизация", "avtomatizaciya")
+    .replace("отдел", "otdel")
+    .replace("статус", "status")
+    .replace("часовмес", "chasovmes")
+    .replace("следующийшаг", "sleduyushchiyshag");
+}
+
+function normalizeStatus(value) {
+  const normalized = String(value).trim().toLowerCase().replaceAll("ё", "е");
+  if (["работает", "live", "done", "готово"].includes(normalized)) return "live";
+  if (["внедряется", "build", "inprogress", "в работе"].includes(normalized)) return "build";
+  if (["на тесте", "тест", "test", "testing"].includes(normalized)) return "test";
+  return "idea";
 }
 
 function scoreAutomation(item) {
@@ -320,6 +418,7 @@ function renderFormOptions() {
 
 function renderAll() {
   renderColaRecord();
+  renderDataSourceState();
   renderMetrics();
   renderLeaderboard();
   renderFilters();
@@ -357,6 +456,22 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function renderDataSourceState() {
+  if (!sheetLink || !ideaPanelTitle) return;
+
+  if (isGoogleSheetMode && config.googleSheetEditUrl) {
+    sheetLink.href = config.googleSheetEditUrl;
+    sheetLink.classList.remove("hidden");
+    ideaPanelTitle.textContent = "Добавить в Google Таблицу";
+    ideaForm.querySelector(".primary-btn span:last-child").textContent = "Открыть таблицу";
+    return;
+  }
+
+  sheetLink.classList.add("hidden");
+  ideaPanelTitle.textContent = "Добавить идею";
+  ideaForm.querySelector(".primary-btn span:last-child").textContent = "Добавить в таблицу";
+}
+
 statusFilter.addEventListener("click", (event) => {
   const button = event.target.closest("[data-status]");
   if (!button) return;
@@ -375,6 +490,13 @@ document.querySelectorAll("[data-period]").forEach((button) => {
 
 ideaForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (isGoogleSheetMode) {
+    if (config.googleSheetEditUrl) {
+      window.open(config.googleSheetEditUrl, "_blank", "noopener,noreferrer");
+    }
+    return;
+  }
+
   const formData = new FormData(ideaForm);
   const nextItem = {
     title: formData.get("title").trim(),
@@ -391,12 +513,24 @@ ideaForm.addEventListener("submit", (event) => {
   renderAll();
 });
 
-resetDataBtn.addEventListener("click", () => {
+resetDataBtn.addEventListener("click", async () => {
+  if (isGoogleSheetMode) {
+    automations = await loadGoogleSheetAutomations();
+    activeStatus = "all";
+    renderAll();
+    return;
+  }
+
   automations = isDemoMode ? seedAutomations : [];
   activeStatus = "all";
   saveAutomations();
   renderAll();
 });
 
-renderFormOptions();
-renderAll();
+async function init() {
+  renderFormOptions();
+  automations = await loadAutomations();
+  renderAll();
+}
+
+init();
